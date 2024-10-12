@@ -11,13 +11,24 @@ def init():
     os.makedirs(OBJECTS_DIR)
 
 
-def hash_object(data):
+def hash_object(data, type_='blob'):
+    obj = type_.encode() + b'\x00' + data
     oid = hashlib.sha1(data).hexdigest()
-    with open(OBJECTS_DIR / oid, 'wb') as f:
-        f.write(data)
+
+    file = OBJECTS_DIR / oid
+    file.write_bytes(obj)
+
     return oid
 
 
-def get_object(oid):
-    with open(OBJECTS_DIR / oid, 'rb') as f:
-        return f.read()
+def get_object(oid, expected='blob'):
+    file = OBJECTS_DIR / oid
+    obj = file.read_bytes()
+
+    type_, _, content = obj.partition(b'\x00')
+    type_ = type_.decode()
+
+    if expected is not None and type_ != expected:
+        raise ValueError(f'Expected {expected}, got {type_}')
+
+    return content
